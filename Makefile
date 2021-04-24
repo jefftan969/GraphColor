@@ -1,9 +1,17 @@
 CXXFLAGS += -Wall -Wextra -pthread -fopenmp -g -O3 -DNDEBUG -std=c++11
 
-all: release
+all: sequential jp gm
 
-release: parse.cpp
-	g++ parse.cpp -o parse $(CXXFLAGS)
+sequential: graph.cpp sequential.cpp
+	g++ graph.cpp sequential.cpp -o sequential $(CXXFLAGS)
+
+jp: graph.cpp jp.cpp
+	g++ graph.cpp jp.cpp -o jp $(CXXFLAGS)
+
+gm: graph.cpp gm.cpp
+	g++ graph.cpp gm.cpp -o gm $(CXXFLAGS)
 
 clean:
-	rm -f ./parse
+	rm -f ./sequential
+	rm -f ./jp
+	rm -f ./gm
