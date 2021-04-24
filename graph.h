@@ -6,14 +6,18 @@
 
 class Graph {
 private:
-    size_t numVertices_;
+    std::string filename_;
+    int numVertices_;
     std::vector<std::vector<int> > graph_;
 
 public:
     Graph(const std::string &filename);
-    size_t getNumVertices(void);
-    const std::vector<int>& getNeighbors(int vertex);
-    void print(void);
+    int getNumVertices(void) const;
+    const std::vector<int>& getNeighbors(int vertex) const;
+    void print(void) const;
 };
+
+void printColoring(const std::vector<int> &coloring);
+bool checkColoring(const Graph &graph, const std::vector<int> &coloring);
 
 #endif
