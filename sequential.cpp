@@ -49,8 +49,7 @@ int main(int argc, char *argv[]) {
     std::vector<int> coloring = sequentialColoring(graph);
     bool validColoring = checkColoring(graph, coloring);
 
-    if (validColoring) printColoring(coloring);
-    else std::cout << "Invalid coloring\n";
+    if (!validColoring) std::cout << "Invalid coloring\n";
 
     return 0;
 }
