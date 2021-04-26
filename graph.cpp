@@ -16,7 +16,7 @@
  *        Graphs are represented as adjacency lists using a vector of vectors.
  * @param[in] filename Input file containing the graph
  */
-Graph::Graph(const std::string &filename) :
+Graph::Graph(const std::string &in_filename) :
     filename_(filename)
 {
     // Try to open file
@@ -29,7 +29,8 @@ Graph::Graph(const std::string &filename) :
     // Read number of vertices
     std::string line;
     std::getline(file, line);
-    numVertices_ = std::stoi(line);
+    std::stringstream ss(line);
+    ss >> numVertices_;
 
     // Construct graph data structure
     graph_.resize(numVertices_);

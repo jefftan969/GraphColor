@@ -39,4 +39,4 @@ inline double getMillis(const std::chrono::time_point<std::chrono::high_resoluti
     return ms_double.count();
 }
 
-#endif
+#endif // _GRAPH_H
