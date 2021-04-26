@@ -8,9 +8,11 @@ def make_graph(out_filename, n, p=None):
     graph = [set() for _ in range(n)]
 
     if p is None:
+        # Standardize p for now, for consistency during testing
         min_p = 1 / (2 * n)
         max_p = 2 * math.log(n) / n
-        p = random.uniform(min_p, max_p)
+        # p = random.uniform(min_p, max_p)
+        p = max_p
 
     # An edge between two vertices is included with probability p
     with open(out_filename, "w") as f:
