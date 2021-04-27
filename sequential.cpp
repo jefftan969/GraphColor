@@ -46,9 +46,12 @@ int main(int argc, char *argv[]) {
     const std::string in_filename = argv[1];
     Graph graph = Graph(in_filename);
     
+    auto t1 = getTime();
     std::vector<int> coloring = sequentialColoring(graph);
-    bool validColoring = checkColoring(graph, coloring);
+    auto t2 = getTime();
+    std::cout << "Time: " << getMillis(t1, t2) << "ms\n";
 
+    bool validColoring = checkColoring(graph, coloring);
     if (!validColoring) std::cout << "Invalid coloring\n";
 
     return 0;

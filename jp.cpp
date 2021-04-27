@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <random>
 #include <stdlib.h>
 #include <pthread.h>
 #include <omp.h>
@@ -25,41 +26,54 @@ std::vector<int> jpColoring(Graph& graph) {
         W.push_back(i);
     }
 
+    // Used to initialize RNG
+    std::random_device rd;
+
     while(!W.empty()) {
         // Assign random weights to each vertex
-        std::vector<int> weights(numVertices);
         // TODO: This parallel loop takes very long
-        #pragma omp parallel for schedule(static)
-        for (int i = 0; i < numVertices; i++) {
-            weights.at(i) = rand();
+        std::vector<int> weights(numVertices);
+        #pragma omp parallel
+        {
+            std::default_random_engine rng(rd());
+            #pragma omp for
+            for (int i = 0; i < numVertices; i++) {
+                weights.at(i) = rng();
+            }
         }
 
         // Initialize the independent set of vertices
         std::vector<int> S;
-        S.reserve(numVertices);
 
         // Add vertices to the independent set
-        #pragma omp parallel for schedule(static)
-        for (int j = 0; j < (int) W.size(); j++) {
-            int vertex = W.at(j);
-            bool flag = true;
-            const std::vector<int>& neighbors = graph.getNeighbors(vertex);
-            for (int j = 0; j < (int) neighbors.size(); j++) {
-                int neighbor = neighbors.at(j);
-                if (weights.at(vertex) <= weights.at(neighbor)) {
-                    flag = false;
-                    break;
+        #pragma omp parallel
+        {
+            std::vector<int> S_local;
+
+            #pragma omp for
+            for (int i = 0; i < (int) W.size(); i++) {
+                int vertex = W.at(i);
+                bool flag = true;
+                const std::vector<int>& neighbors = graph.getNeighbors(vertex);
+                for (int j = 0; j < (int) neighbors.size(); j++) {
+                    int neighbor = neighbors.at(j);
+                    if (weights.at(vertex) < weights.at(neighbor)) {
+                        flag = false;
+                        break;
+                    }
+                }
+
+                if (flag) {
+                    S_local.push_back(vertex);
                 }
             }
 
-            if (flag) {
-                #pragma omp critical (updateS)
-                {
-                    S.push_back(vertex);
-                }
+            #pragma omp critical(updateS)
+            {
+                S.insert(S.end(), S_local.begin(), S_local.end());
             }
         }
-        
+
         // Color the independent set
         // TODO: This parallel loop takes very long
         #pragma omp parallel for schedule(static)
@@ -95,9 +109,12 @@ int main(int argc, char *argv[]) {
     const std::string in_filename = argv[3];
     Graph graph = Graph(in_filename);
     
+    auto t1 = getTime();
     std::vector<int> coloring = jpColoring(graph);
-    bool validColoring = checkColoring(graph, coloring);
+    auto t2 = getTime();
+    std::cout << "Time: " << getMillis(t1, t2) << "ms\n";
 
+    bool validColoring = checkColoring(graph, coloring);
     if (!validColoring) std::cout << "Invalid coloring\n";
 
     return 0;

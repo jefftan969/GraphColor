@@ -16,7 +16,7 @@
  *        Graphs are represented as adjacency lists using a vector of vectors.
  * @param[in] filename Input file containing the graph
  */
-Graph::Graph(const std::string &in_filename) :
+Graph::Graph(const std::string &filename) :
     filename_(filename)
 {
     // Try to open file
