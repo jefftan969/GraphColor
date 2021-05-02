@@ -50,7 +50,7 @@ std::vector<int> jpColoring(Graph& graph) {
         {
             std::vector<int> S_local;
 
-            #pragma omp for
+            #pragma omp for schedule(static)
             for (int i = 0; i < (int) W.size(); i++) {
                 int vertex = W.at(i);
                 bool flag = true;
