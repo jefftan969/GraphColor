@@ -37,8 +37,9 @@ std::vector<int> jpColoring(Graph& graph) {
         {
             std::default_random_engine rng(rd());
             #pragma omp for
-            for (int i = 0; i < numVertices; i++) {
-                weights.at(i) = rng();
+            for (int i = 0; i < (int) W.size(); i++) {
+                int v = W.at(i);
+                weights.at(v) = rng();
             }
         }
 
@@ -85,6 +86,10 @@ std::vector<int> jpColoring(Graph& graph) {
         // Update the working set and color
         if (!S.empty()) {
             std::vector<int> newW;
+            // Set difference requires both arrays to be sorted, W remains
+            // sorted throughout but we need to sort S here since threads may
+            // insert out-of-order into S
+            std::sort(S.begin(), S.end());
             std::set_difference(W.begin(), W.end(), S.begin(), S.end(), 
                                 std::inserter(newW, newW.end()));
             W = newW;
