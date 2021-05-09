@@ -19,25 +19,31 @@
 Graph::Graph(const std::string &filename) :
     filename_(filename)
 {
-    // Try to open file
+    // Read edgelist from stdin if filename is "-"
+    if(filename == "-") {
+        parseEdgeList(std::cin);
+        return;
+    } 
+    
+    // Otherwise, try to open file
     std::ifstream file(filename.c_str());
     if(!file.is_open()) {
         std::cerr << "Error: File '" << filename << "' does not exist\n";
         exit(-1);
     }
 
-    if(filename.substr(filename.length() - 4) == ".col") {
+    if(hasExtension(filename, ".col")) {
         // Interpret graph as DIMACS standard format
         parseDimacs(file);
-    } else if(filename.substr(filename.length() - 6) == ".col.b") {
+    } else if(hasExtension(filename, ".col.b")) {
         // Interpret graph as DIMACS binary format
         parseDimacsBinary(file);
-    } else if(filename.substr(filename.length() - 4) == ".txt") {
-        // Interpret graph as edge list format
-        parseEdgeList(file);
-    } else if(filename.substr(filename.length() - 4) == ".mtx") {
+    } else if(hasExtension(filename, ".mtx")) {
         // Interpret graph as Matrix Market format
         parseMatrixMarket(file);
+    } else if(hasExtension(filename, ".txt")) {
+        // Interpret graph as edge list format
+        parseEdgeList(file);
     } else {
         std::cerr << "Error: File '" << filename << "' has an unknown format\n";
         exit(-1);
@@ -46,11 +52,11 @@ Graph::Graph(const std::string &filename) :
 
 /**
  * @brief Parse graph representation as DIMACS edge list format
- * @param[in] file Input file
+ * @param[in] input Input stream
  */
-void Graph::parseDimacs(std::istream &file) {
+void Graph::parseDimacs(std::istream &input) {
     std::string line;
-    while(std::getline(file, line)) {
+    while(std::getline(input, line)) {
         char linetype;
         std::stringstream ss(line);
         ss >> linetype;
@@ -79,14 +85,14 @@ void Graph::parseDimacs(std::istream &file) {
 
 /**
  * @brief Parse graph representation as DIMACS binary format
- * @param[in] file Input file
+ * @param[in] input Input stream
  */
-void Graph::parseDimacsBinary(std::istream &file) {
+void Graph::parseDimacsBinary(std::istream &input) {
     std::string line;
 
     // Read preamble
-    std::getline(file, line);
-    while(std::getline(file, line)) {
+    std::getline(input, line);
+    while(std::getline(input, line)) {
         char linetype;
         std::stringstream ss(line);
         ss >> linetype;
@@ -109,7 +115,7 @@ void Graph::parseDimacsBinary(std::istream &file) {
     // Read rows of adjacency matrix, and add edges to graph data structure
     char *adjacencyRow = new char[numVertices_/8 + 1];
     for(int i = 0; i < numVertices_; i++) {
-        file.read(adjacencyRow, i/8 + 1);
+        input.read(adjacencyRow, i/8 + 1);
 
         for(int j = 0; j <= i; j++) {
             int bit = 0x07 - (j & 0x07);
@@ -126,27 +132,27 @@ void Graph::parseDimacsBinary(std::istream &file) {
 
 /**
  * @brief Parse graph representation as Matrix Market adjacency matrix format
- * @param[in] file Input file
+ * @param[in] input Input stream
  */
-void Graph::parseMatrixMarket(std::istream &file) {
+void Graph::parseMatrixMarket(std::istream &input) {
     // TODO implement matrix market parsing
-    (void)file;
+    (void)input;
 }
 
 /**
  * @brief Parse graph representation as custom edge list format
- * @param[in] file Input file
+ * @param[in] input Input stream
  */
-void Graph::parseEdgeList(std::istream &file) {
+void Graph::parseEdgeList(std::istream &input) {
     // First line contains number of vertices, subsequent lines each denote an edge
     std::string line;
-    std::getline(file, line);
+    std::getline(input, line);
     std::stringstream ss(line);
 
     ss >> numVertices_;
     graph_.resize(numVertices_);
 
-    while(std::getline(file, line)) {
+    while(std::getline(input, line)) {
         std::stringstream ss(line);
         
         int v1, v2;
@@ -177,7 +183,9 @@ void Graph::print(void) const {
     std::cout << "Graph " << filename_ << ": \n";
     for(int v = 0; v < numVertices_; v++) {
         std::cout << v << ": ";
-        for(int w : getNeighbors(v)) {
+        const std::vector<int> &neighbors = getNeighbors(v);
+        for(int j = 0; j < (int)neighbors.size(); j++) {
+            int w = neighbors.at(j);
             std::cout << w << " ";
         }
         std::cout << "\n";
@@ -204,7 +212,9 @@ void printColoring(const std::vector<int> &coloring) {
 bool checkColoring(const Graph &graph, const std::vector<int> &coloring) {
     bool isValid = true;
     for(int v = 0; v < graph.getNumVertices(); v++) {
-        for(int w : graph.getNeighbors(v)) {
+        const std::vector<int> &neighbors = graph.getNeighbors(v);
+        for(int j = 0; j < (int)neighbors.size(); j++) {
+            int w = neighbors.at(j);
             if((v < w) && (coloring.at(v) == coloring.at(w))) {
                 isValid = false;
                 std::cout << "Edge (" << v << ", " << w << ") invalid: "

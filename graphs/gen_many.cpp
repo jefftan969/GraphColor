@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
             p = pDist(rng);
         }
 
-        make_graph(out_filename + ".txt", n, p, rng());
+        make_graph(out_filename, n, p, rng());
     }
     return 0;
 }

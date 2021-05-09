@@ -7,9 +7,6 @@
 
 #include "graph.h"
 
-double loop1 = 0;
-double loop2 = 0;
-
 std::vector<int> gmColoring(const Graph &graph) {
     int n = graph.getNumVertices();
     int numThreads = omp_get_max_threads();
@@ -64,7 +61,7 @@ std::vector<int> gmColoring(const Graph &graph) {
                 const std::vector<int> &neighbors = graph.getNeighbors(v);
                 for(int j = 0; j < (int)neighbors.size(); j++) {
                     int w = neighbors.at(j);
-                    if((coloring.at(v) == coloring.at(w)) && (v < w)) {
+                    if((v < w) && (coloring.at(v) == coloring.at(w))) {
                         localR.push_back(v);
                     }
                 }
@@ -88,7 +85,6 @@ int main(int argc, char *argv[]) {
         std::cout << "Usage: " << argv[0] << " -p [processor_count] [in_filename]\n";
         exit(-1);
     }
-
     const std::string argument = argv[1];
     if(argument.compare("-p") != 0) {
         std::cout << "Usage: " << argv[0] << " -p [processor_count] [in_filename]\n";

@@ -29,6 +29,16 @@ bool checkColoring(const Graph &graph, const std::vector<int> &coloring);
 int numColorsUsed(const std::vector<int> &coloring);
 
 /**
+ * @brief Helper function to check whether a filename has a given extension
+ * @param[in] filename Filename to check
+ * @param[in] extension Desired file extension
+ */
+inline bool hasExtension(const std::string &filename, const std::string &extension) {
+    return (filename.length() >= extension.length()) &&
+           (filename.substr(filename.length() - extension.length()) == extension);
+}
+
+/**
  * @brief Returns the current time
  */
 inline std::chrono::time_point<std::chrono::high_resolution_clock> getTime() {

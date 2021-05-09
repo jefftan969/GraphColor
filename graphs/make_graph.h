@@ -26,22 +26,32 @@ void make_graph(const std::string &out_filename, int n, double p, int seed) {
         return;
     }
 
-    // An edge between two vertices is included independently with probability p
-    std::ofstream file(out_filename.c_str());
-    if(!file.good()) {
+    // Try to open file, write to stdout if filename is "-"
+    std::ostream *output = nullptr;
+    if(out_filename == "-") {
+        output = &std::cout;
+    } else {
+        output = new std::ofstream((out_filename + ".txt").c_str());
+    }
+    if(!output->good()) {
         std::cerr << "Error: Cannot create file " << out_filename << "\n";
         return;
     }
-    file << n << ' ' << p << ' ' << seed << '\n';
+    *output << n << ' ' << p << ' ' << seed << '\n';
 
+    // An edge between two vertices is included independently with probability p
     std::uniform_real_distribution<double> uniform(0.0, 1.0);
     for(int u = 0; u < n; u++) {
         for(int v = u; v < n; v++) {
             if(uniform(rng) < p) {
-                file << u << ' ' << v << '\n';
+                *output << u << ' ' << v << '\n';
             }
         }
     }
+
+    if(out_filename != "-") {
+        delete output;
+    }
 }
 
-#endif
+#endif // _MAKE_GRAPH_H
