@@ -1,3 +1,4 @@
 gen_one
 gen_many
-ex*
+dense*.txt
+sparse*.txt
