@@ -14,6 +14,7 @@ private:
 
     void parseDimacs(std::istream &file);
     void parseDimacsBinary(std::istream &file);
+    void parseMatrixMarket(std::istream &file);
     void parseEdgeList(std::istream &file);
 
 public:
@@ -25,6 +26,7 @@ public:
 
 void printColoring(const std::vector<int> &coloring);
 bool checkColoring(const Graph &graph, const std::vector<int> &coloring);
+int numColorsUsed(const std::vector<int> &coloring);
 
 /**
  * @brief Returns the current time

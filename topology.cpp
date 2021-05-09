@@ -88,6 +88,9 @@ int main(int argc, char *argv[]) {
     auto t2 = getTime();
     std::cout << "Time: " << getMillis(t1, t2) << "ms\n";
 
+    int numColors = numColorsUsed(coloring);
+    std::cout << "Colors used: " << numColors << "\n";
+
     bool validColoring = checkColoring(graph, coloring);
     if (!validColoring) std::cout << "Invalid coloring\n";
 

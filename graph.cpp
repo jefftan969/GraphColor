@@ -130,6 +130,7 @@ void Graph::parseDimacsBinary(std::istream &file) {
  */
 void Graph::parseMatrixMarket(std::istream &file) {
     // TODO implement matrix market parsing
+    (void)file;
 }
 
 /**
@@ -189,7 +190,7 @@ void Graph::print(void) const {
  */
 void printColoring(const std::vector<int> &coloring) {
     std::cout << "Coloring: \n";
-    for(size_t v = 0; v < coloring.size(); v++) {
+    for(int v = 0; v < (int)coloring.size(); v++) {
         std::cout << v << ": " << coloring.at(v) << "\n";
     }
 }
@@ -212,4 +213,18 @@ bool checkColoring(const Graph &graph, const std::vector<int> &coloring) {
         }
     }
     return isValid;
+}
+
+/**
+ * @brief Returns the number of colors used in a given vertex coloring
+ * @param[in] coloring A vertex indexed vector, storing the color of each vertex
+ */
+int numColorsUsed(const std::vector<int> &coloring) {
+    int maxColor = -1;
+    for(int v = 0; v < (int)coloring.size(); v++) {
+        if(coloring.at(v) > maxColor) {
+            maxColor = coloring.at(v);
+        }
+    }
+    return maxColor + 1; // Colors are 0-indexed
 }
