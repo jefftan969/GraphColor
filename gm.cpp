@@ -7,12 +7,15 @@
 
 #include "graph.h"
 
+double loop1 = 0;
+double loop2 = 0;
+
 std::vector<int> gmColoring(const Graph &graph) {
     int n = graph.getNumVertices();
+    int numThreads = omp_get_max_threads();
 
     // Vertex indexed array, storing color of each vertex
     std::vector<int> coloring(n);
-
 
     // Keep a worklist, the set of vertices that still need to be considered
     std::vector<int> W;
@@ -20,12 +23,17 @@ std::vector<int> gmColoring(const Graph &graph) {
         W.push_back(i);
     }
 
+    // Color indexed array for each thread, marking colors that a particular vertex v cannot have
+    std::vector<int> *colorMask = new std::vector<int>[numThreads];
+    for(int tid = 0; tid < numThreads; tid++) {
+        colorMask[tid].resize(n);
+    }
+
     while(!W.empty()) {
         // Determine which colors are permissible for each vertex
         #pragma omp parallel
         {
-            // Color indexed array, marking colors that a particular vertex v cannot have
-            std::vector<int> colorMask(n);
+            int tid = omp_get_thread_num();
 
             #pragma omp for
             for(int i = 0; i < (int)W.size(); i++) {
@@ -33,10 +41,10 @@ std::vector<int> gmColoring(const Graph &graph) {
                 const std::vector<int> &neighbors = graph.getNeighbors(v);
                 for(int j = 0; j < (int)neighbors.size(); j++) {
                     int w = neighbors.at(j);
-                    colorMask.at(coloring.at(w)) = v;
+                    colorMask[tid].at(coloring.at(w)) = v;
                 }
                 for(int i = 0; i < n; i++) {
-                    if(colorMask.at(i) != v) {
+                    if(colorMask[tid].at(i) != v) {
                         coloring.at(v) = i;
                         break;
                     }
@@ -48,8 +56,7 @@ std::vector<int> gmColoring(const Graph &graph) {
         std::vector<int> R;
         #pragma omp parallel
         {
-            // Local copy of remaining worklist, merged with R after loop
-            std::vector<int> R_local;
+            std::vector<int> localR;
 
             #pragma omp for
             for(int i = 0; i < (int)W.size(); i++) {
@@ -58,14 +65,14 @@ std::vector<int> gmColoring(const Graph &graph) {
                 for(int j = 0; j < (int)neighbors.size(); j++) {
                     int w = neighbors.at(j);
                     if((coloring.at(v) == coloring.at(w)) && (v < w)) {
-                        R_local.push_back(v);
+                        localR.push_back(v);
                     }
                 }
             }
 
-            #pragma omp critical (R_join)
+            #pragma omp critical (joinR)
             {
-                R.insert(R.end(), R_local.begin(), R_local.end());
+                R.insert(R.end(), localR.begin(), localR.end());
             }
         }
 
@@ -82,8 +89,8 @@ int main(int argc, char *argv[]) {
         exit(-1);
     }
 
-    const std::string flag = argv[1];
-    if(flag.compare("-p") != 0) {
+    const std::string argument = argv[1];
+    if(argument.compare("-p") != 0) {
         std::cout << "Usage: " << argv[0] << " -p [processor_count] [in_filename]\n";
         exit(-1);
     }

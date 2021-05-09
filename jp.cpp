@@ -9,9 +9,6 @@
 #include <pthread.h>
 #include <omp.h>
 
-// Include timing library
-#include <chrono>
-
 std::vector<int> jpColoring(Graph& graph) {
     int numVertices = graph.getNumVertices();
     int currentColor = 0;
@@ -31,7 +28,6 @@ std::vector<int> jpColoring(Graph& graph) {
 
     while(!W.empty()) {
         // Assign random weights to each vertex
-        // TODO: This parallel loop takes very long
         std::vector<int> weights(numVertices);
         #pragma omp parallel
         {
@@ -49,7 +45,7 @@ std::vector<int> jpColoring(Graph& graph) {
         // Add vertices to the independent set
         #pragma omp parallel
         {
-            std::vector<int> S_local;
+            std::vector<int> localS;
 
             #pragma omp for schedule(static)
             for (int i = 0; i < (int) W.size(); i++) {
@@ -65,18 +61,17 @@ std::vector<int> jpColoring(Graph& graph) {
                 }
 
                 if (flag) {
-                    S_local.push_back(vertex);
+                    localS.push_back(vertex);
                 }
             }
 
             #pragma omp critical(updateS)
             {
-                S.insert(S.end(), S_local.begin(), S_local.end());
+                S.insert(S.end(), localS.begin(), localS.end());
             }
         }
 
         // Color the independent set
-        // TODO: This parallel loop takes very long
         #pragma omp parallel for schedule(static)
         for (int j = 0; j < (int) S.size(); j++) {
             int vertex = S.at(j);
@@ -92,7 +87,7 @@ std::vector<int> jpColoring(Graph& graph) {
             std::sort(S.begin(), S.end());
             std::set_difference(W.begin(), W.end(), S.begin(), S.end(), 
                                 std::inserter(newW, newW.end()));
-            W = newW;
+            std::swap(W, newW);
             currentColor++;
         }
     }
