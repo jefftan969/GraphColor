@@ -2,6 +2,7 @@
 #define _GRAPH_H
 
 #include <chrono>
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -10,6 +11,10 @@ private:
     std::string filename_;
     int numVertices_;
     std::vector<std::vector<int> > graph_;
+
+    void parseDimacs(std::istream &file);
+    void parseDimacsBinary(std::istream &file);
+    void parseEdgeList(std::istream &file);
 
 public:
     Graph(const std::string &filename);
