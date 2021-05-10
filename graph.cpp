@@ -135,8 +135,40 @@ void Graph::parseDimacsBinary(std::istream &input) {
  * @param[in] input Input stream
  */
 void Graph::parseMatrixMarket(std::istream &input) {
-    // TODO implement matrix market parsing
-    (void)input;
+    std::string line;
+    
+    // Only parsing files of coordinate format, not array
+    std::getline(input, line);
+    if (line.find("coordinate") == std::string::npos) {
+      std::cerr << "Error: File is not of coordinate format.\n";
+      exit(-1);
+    }
+
+    // Continue to read file until past comment lines
+    while(line.at(0) == '%') {
+      std::getline(input, line);
+    }
+
+    // Obtain the number of vertices from the first line of file
+    std::stringstream ss(line);
+
+    ss >> numVertices_;
+    graph_.resize(numVertices_);
+
+    while(std::getline(input, line)) {
+        std::stringstream ss(line);
+
+        // Note: ignoring the last number of line, which gives weights
+        int v1, v2;
+        ss >> v1 >> v2;
+
+        // Matrix Market format is indexed at 1, while we index at 0
+        v1--;
+        v2--;
+
+        graph_.at(v1).push_back(v2);
+        graph_.at(v2).push_back(v1);
+    }
 }
 
 /**
