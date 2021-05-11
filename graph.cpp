@@ -17,7 +17,11 @@
  * @param[in] filename Input file containing the graph
  */
 Graph::Graph(const std::string &filename) :
-    filename_(filename)
+    filename_(filename),
+    numVertices_(0),
+    numEdges_(0),
+    vertices_(nullptr),
+    edges_(nullptr)
 {
     // Read edgelist from stdin if filename is "-"
     if(filename == "-") {
@@ -48,6 +52,17 @@ Graph::Graph(const std::string &filename) :
         std::cerr << "Error: File '" << filename << "' has an unknown format\n";
         exit(-1);
     }
+
+    // Create CSR graph representation for CUDA implementations
+    getCSR();
+}
+
+/**
+ * @brief Destructor for graph object
+ */
+Graph::~Graph(void) {
+    delete vertices_;
+    delete edges_;
 }
 
 /**
@@ -67,6 +82,7 @@ void Graph::parseDimacs(std::istream &input) {
             ss >> v1 >> v2;
             graph_.at(v1-1).push_back(v2-1);
             graph_.at(v2-1).push_back(v1-1);
+            numEdges_++;
 
         } else if(linetype == 'p') {
             // Read number of vertices
@@ -125,6 +141,7 @@ void Graph::parseDimacsBinary(std::istream &input) {
             if((adjacencyRow[byte] & mask) == mask) {
                 graph_.at(i).push_back(j);
                 graph_.at(j).push_back(i);
+                numEdges_++;
             }
         }
     }
@@ -140,18 +157,17 @@ void Graph::parseMatrixMarket(std::istream &input) {
     // Only parsing files of coordinate format, not array
     std::getline(input, line);
     if (line.find("coordinate") == std::string::npos) {
-      std::cerr << "Error: File is not of coordinate format.\n";
-      exit(-1);
+        std::cerr << "Error: File is not of coordinate format.\n";
+        exit(-1);
     }
 
     // Continue to read file until past comment lines
     while(line.at(0) == '%') {
-      std::getline(input, line);
+        std::getline(input, line);
     }
 
     // Obtain the number of vertices from the first line of file
     std::stringstream ss(line);
-
     ss >> numVertices_;
     graph_.resize(numVertices_);
 
@@ -163,11 +179,9 @@ void Graph::parseMatrixMarket(std::istream &input) {
         ss >> v1 >> v2;
 
         // Matrix Market format is indexed at 1, while we index at 0
-        v1--;
-        v2--;
-
-        graph_.at(v1).push_back(v2);
-        graph_.at(v2).push_back(v1);
+        graph_.at(v1-1).push_back(v2-1);
+        graph_.at(v2-1).push_back(v1-1);
+        numEdges_++;
     }
 }
 
@@ -191,7 +205,29 @@ void Graph::parseEdgeList(std::istream &input) {
         ss >> v1 >> v2;
         graph_.at(v1).push_back(v2);
         graph_.at(v2).push_back(v1);
+        numEdges_++;
     }
+}
+
+/**
+ * @brief Represent graph in compressed sparse row format for CUDA programs
+ *        For each vertex v, the neighbors of v are stored between indices
+ *        vertices_[v] (inclusive) and vertices_[v+1] (exclusive) in edges_
+ */
+void Graph::getCSR(void) {
+    vertices_ = new int[numVertices_ + 1];
+    edges_ = new int[2*numEdges_];
+
+    int offset = 0;
+    for(int v = 0; v < numVertices_; v++) {
+        vertices_[v] = offset;
+        const std::vector<int> &neighbors = getNeighbors(v);
+        for(int j = 0; j < (int)neighbors.size(); j++) {
+            edges_[offset] = neighbors.at(j);
+            offset++;
+        }
+    }
+    vertices_[numVertices_] = offset;
 }
 
 /**
@@ -199,6 +235,27 @@ void Graph::parseEdgeList(std::istream &input) {
  */
 int Graph::getNumVertices(void) const {
     return numVertices_;
+}
+
+/**
+ * @brief Returns the number of edges in the graph
+ */
+int Graph::getNumEdges(void) const {
+    return numEdges_;
+}
+
+/**
+ * @brief Returns vertices array for CSR representation of graph
+ */
+int *Graph::getCSRVertices(void) const {
+    return vertices_;
+}
+
+/**
+ * @brief Returns edges array for CSR representation of graph
+ */
+int *Graph::getCSREdges(void) const {
+    return edges_;
 }
 
 /**

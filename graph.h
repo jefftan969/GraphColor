@@ -10,16 +10,24 @@ class Graph {
 private:
     std::string filename_;
     int numVertices_;
-    std::vector<std::vector<int> > graph_;
+    int numEdges_;
+    int* vertices_;
+    int* edges_;
+    std::vector< std::vector<int> > graph_;
 
     void parseDimacs(std::istream &file);
     void parseDimacsBinary(std::istream &file);
     void parseMatrixMarket(std::istream &file);
     void parseEdgeList(std::istream &file);
+    void getCSR(void);
 
 public:
     Graph(const std::string &filename);
+    ~Graph(void);
     int getNumVertices(void) const;
+    int getNumEdges(void) const;
+    int* getCSRVertices(void) const;
+    int* getCSREdges(void) const;
     const std::vector<int>& getNeighbors(int vertex) const;
     void print(void) const;
 };
