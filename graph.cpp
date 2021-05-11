@@ -21,7 +21,7 @@ Graph::Graph(const std::string &filename) :
     numVertices_(0),
     numEdges_(0),
     vertices_(nullptr),
-    edges_(nullptr)
+    neighbors_(nullptr)
 {
     // Read edgelist from stdin if filename is "-"
     if(filename == "-") {
@@ -62,7 +62,7 @@ Graph::Graph(const std::string &filename) :
  */
 Graph::~Graph(void) {
     delete vertices_;
-    delete edges_;
+    delete neighbors_;
 }
 
 /**
@@ -80,8 +80,8 @@ void Graph::parseDimacs(std::istream &input) {
             // Read edge, note that DIMACS edge list format is 1-indexed
             int v1, v2;
             ss >> v1 >> v2;
-            graph_.at(v1-1).push_back(v2-1);
-            graph_.at(v2-1).push_back(v1-1);
+            graph_[v1-1].push_back(v2-1);
+            graph_[v2-1].push_back(v1-1);
             numEdges_++;
 
         } else if(linetype == 'p') {
@@ -139,8 +139,8 @@ void Graph::parseDimacsBinary(std::istream &input) {
             char mask = 0x01 << bit;
 
             if((adjacencyRow[byte] & mask) == mask) {
-                graph_.at(i).push_back(j);
-                graph_.at(j).push_back(i);
+                graph_[i].push_back(j);
+                graph_[j].push_back(i);
                 numEdges_++;
             }
         }
@@ -179,8 +179,8 @@ void Graph::parseMatrixMarket(std::istream &input) {
         ss >> v1 >> v2;
 
         // Matrix Market format is indexed at 1, while we index at 0
-        graph_.at(v1-1).push_back(v2-1);
-        graph_.at(v2-1).push_back(v1-1);
+        graph_[v1-1].push_back(v2-1);
+        graph_[v2-1].push_back(v1-1);
         numEdges_++;
     }
 }
@@ -203,8 +203,8 @@ void Graph::parseEdgeList(std::istream &input) {
         
         int v1, v2;
         ss >> v1 >> v2;
-        graph_.at(v1).push_back(v2);
-        graph_.at(v2).push_back(v1);
+        graph_[v1].push_back(v2);
+        graph_[v2].push_back(v1);
         numEdges_++;
     }
 }
@@ -216,14 +216,14 @@ void Graph::parseEdgeList(std::istream &input) {
  */
 void Graph::getCSR(void) {
     vertices_ = new int[numVertices_ + 1];
-    edges_ = new int[2*numEdges_];
+    neighbors_ = new int[2*numEdges_];
 
     int offset = 0;
     for(int v = 0; v < numVertices_; v++) {
         vertices_[v] = offset;
         const std::vector<int> &neighbors = getNeighbors(v);
         for(int j = 0; j < (int)neighbors.size(); j++) {
-            edges_[offset] = neighbors.at(j);
+            neighbors_[offset] = neighbors.at(j);
             offset++;
         }
     }
@@ -247,15 +247,15 @@ int Graph::getNumEdges(void) const {
 /**
  * @brief Returns vertices array for CSR representation of graph
  */
-int *Graph::getCSRVertices(void) const {
+const int *Graph::getCSRVertices(void) const {
     return vertices_;
 }
 
 /**
- * @brief Returns edges array for CSR representation of graph
+ * @brief Returns neighbors array for CSR representation of graph
  */
-int *Graph::getCSREdges(void) const {
-    return edges_;
+const int *Graph::getCSRNeighbors(void) const {
+    return neighbors_;
 }
 
 /**
@@ -270,11 +270,12 @@ const std::vector<int>& Graph::getNeighbors(int vertex) const {
  */
 void Graph::print(void) const {
     std::cout << "Graph " << filename_ << ": \n";
+    const int *vertices = getCSRVertices();
+    const int *neighbors = getCSRNeighbors();
     for(int v = 0; v < numVertices_; v++) {
         std::cout << v << ": ";
-        const std::vector<int> &neighbors = getNeighbors(v);
-        for(int j = 0; j < (int)neighbors.size(); j++) {
-            int w = neighbors.at(j);
+        for(int j = vertices[v]; j < vertices[v+1]; j++) {
+            int w = neighbors[j];
             std::cout << w << " ";
         }
         std::cout << "\n";
@@ -288,7 +289,7 @@ void Graph::print(void) const {
 void printColoring(const std::vector<int> &coloring) {
     std::cout << "Coloring: \n";
     for(int v = 0; v < (int)coloring.size(); v++) {
-        std::cout << v << ": " << coloring.at(v) << "\n";
+        std::cout << v << ": " << coloring[v] << "\n";
     }
 }
 
@@ -299,15 +300,16 @@ void printColoring(const std::vector<int> &coloring) {
  * @param[in] coloring A vertex indexed vector, storing the color of each vertex
  */
 bool checkColoring(const Graph &graph, const std::vector<int> &coloring) {
+    const int *vertices = graph.getCSRVertices();
+    const int *neighbors = graph.getCSRNeighbors();
     bool isValid = true;
     for(int v = 0; v < graph.getNumVertices(); v++) {
-        const std::vector<int> &neighbors = graph.getNeighbors(v);
-        for(int j = 0; j < (int)neighbors.size(); j++) {
-            int w = neighbors.at(j);
-            if((v < w) && (coloring.at(v) == coloring.at(w))) {
+        for(int j = vertices[v]; j < vertices[v+1]; j++) {
+            int w = neighbors[j];
+            if((v < w) && (coloring[v] == coloring[w])) {
                 isValid = false;
                 std::cout << "Edge (" << v << ", " << w << ") invalid: "
-                          << "color[" << v << "] = color[" << w << "] = " << coloring.at(v) << "\n";
+                          << "color[" << v << "] = color[" << w << "] = " << coloring[v] << "\n";
             }
         }
     }
@@ -321,8 +323,8 @@ bool checkColoring(const Graph &graph, const std::vector<int> &coloring) {
 int numColorsUsed(const std::vector<int> &coloring) {
     int maxColor = -1;
     for(int v = 0; v < (int)coloring.size(); v++) {
-        if(coloring.at(v) > maxColor) {
-            maxColor = coloring.at(v);
+        if(coloring[v] > maxColor) {
+            maxColor = coloring[v];
         }
     }
     return maxColor + 1; // Colors are 0-indexed

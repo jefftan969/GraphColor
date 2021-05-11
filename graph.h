@@ -12,7 +12,7 @@ private:
     int numVertices_;
     int numEdges_;
     int* vertices_;
-    int* edges_;
+    int* neighbors_;
     std::vector< std::vector<int> > graph_;
 
     void parseDimacs(std::istream &file);
@@ -26,8 +26,8 @@ public:
     ~Graph(void);
     int getNumVertices(void) const;
     int getNumEdges(void) const;
-    int* getCSRVertices(void) const;
-    int* getCSREdges(void) const;
+    const int* getCSRVertices(void) const;
+    const int* getCSRNeighbors(void) const;
     const std::vector<int>& getNeighbors(int vertex) const;
     void print(void) const;
 };
