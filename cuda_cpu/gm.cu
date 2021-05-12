@@ -15,7 +15,7 @@
 // parallel GPU implementation.
 #define COLOR_MASK_SIZE 500
 #define BLOCK_SIZE 128
-#define NUM_CUDA_ITERS 6
+#define NUM_CUDA_ITERS 16
 
 #define DEBUG
 #ifdef DEBUG

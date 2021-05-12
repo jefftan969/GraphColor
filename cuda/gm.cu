@@ -130,6 +130,18 @@ struct cudaContext setup(const Graph &graph) {
 }
 
 /**
+ * @brief Frees all data structures in the given CUDA context
+ * @param[in] context The CUDA context to free
+ */
+void freeCudaContext(struct cudaContext context) {
+    cudaFree(context.vertices);
+    cudaFree(context.neighbors);
+    cudaFree(context.worklist);
+    cudaFree(context.coloring);
+    cudaFree(context.worklistEmptyFlag);
+}
+
+/**
  * @brief Performs graph coloring using the GM algorithm
  * @param[in] context A cudaContext sturct containing all device data structures
  * @return coloring The outputted coloring
@@ -183,6 +195,7 @@ int main(int argc, char *argv[]) {
         std::cout << "Invalid coloring\n";
     }
 
+    freeCudaContext(context);
     delete coloring;
     return 0;
 }
