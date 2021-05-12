@@ -266,6 +266,20 @@ const std::vector<int>& Graph::getNeighbors(int vertex) const {
 }
 
 /**
+ * @brief Returns the maximum degree of any vertex in the graph
+ */
+int Graph::getMaxDegree(void) const {
+    int maxDegree = -1;
+    for(int v = 0; v < numVertices_; v++) {
+        int degree = vertices_[v+1] - vertices_[v];
+        if(maxDegree < degree) {
+            maxDegree = degree;
+        }
+    }
+    return maxDegree;
+}
+
+/**
  * @brief Prints the adjacency list of the current graph
  */
 void Graph::print(void) const {

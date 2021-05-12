@@ -29,6 +29,7 @@ public:
     const int* getCSRVertices(void) const;
     const int* getCSRNeighbors(void) const;
     const std::vector<int>& getNeighbors(int vertex) const;
+    int getMaxDegree(void) const;
     void print(void) const;
 };
 
