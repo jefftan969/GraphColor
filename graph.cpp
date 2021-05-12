@@ -284,11 +284,16 @@ void Graph::print(void) const {
 
 /**
  * @brief Prints a given vertex coloring
- * @param[in] coloring A vertex indexed vector, storing the color of each vertex
+ * @param[in] coloring A vertex indexed vector or array, storing the color of each vertex
+ * @param[in] size Number of vertices in the coloring
  */
 void printColoring(const std::vector<int> &coloring) {
+    printColoring(coloring.data(), coloring.size());
+}
+
+void printColoring(const int *coloring, int size) {
     std::cout << "Coloring: \n";
-    for(int v = 0; v < (int)coloring.size(); v++) {
+    for(int v = 0; v < size; v++) {
         std::cout << v << ": " << coloring[v] << "\n";
     }
 }
@@ -300,6 +305,10 @@ void printColoring(const std::vector<int> &coloring) {
  * @param[in] coloring A vertex indexed vector, storing the color of each vertex
  */
 bool checkColoring(const Graph &graph, const std::vector<int> &coloring) {
+    return checkColoring(graph, coloring.data());
+}
+
+bool checkColoring(const Graph &graph, const int *coloring) {
     const int *vertices = graph.getCSRVertices();
     const int *neighbors = graph.getCSRNeighbors();
     bool isValid = true;
@@ -319,10 +328,15 @@ bool checkColoring(const Graph &graph, const std::vector<int> &coloring) {
 /**
  * @brief Returns the number of colors used in a given vertex coloring
  * @param[in] coloring A vertex indexed vector, storing the color of each vertex
+ * @param[in] size Number of vertices in the coloring
  */
 int numColorsUsed(const std::vector<int> &coloring) {
+    return numColorsUsed(coloring.data(), coloring.size());
+}
+
+int numColorsUsed(const int *coloring, int size) {
     int maxColor = -1;
-    for(int v = 0; v < (int)coloring.size(); v++) {
+    for(int v = 0; v < size; v++) {
         if(coloring[v] > maxColor) {
             maxColor = coloring[v];
         }
