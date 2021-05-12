@@ -42,7 +42,7 @@ void make_graph(const std::string &out_filename, int n, double p, int seed) {
     // An edge between two vertices is included independently with probability p
     std::uniform_real_distribution<double> uniform(0.0, 1.0);
     for(int u = 0; u < n; u++) {
-        for(int v = u; v < n; v++) {
+        for(int v = u + 1; v < n; v++) {
             if(uniform(rng) < p) {
                 *output << u << ' ' << v << '\n';
             }

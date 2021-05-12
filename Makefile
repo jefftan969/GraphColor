@@ -3,20 +3,8 @@ NVCCFLAGS += -g -m64 --gpu-architecture compute_61 -ccbin /usr/bin/gcc -std=c++1
 
 all: sequential jp gm topology data-driven jp-cuda
 
-sequential: graph.cpp sequential.cpp
-	g++ graph.cpp sequential.cpp -o sequential $(CXXFLAGS)
-
-jp: graph.cpp jp.cpp
-	g++ graph.cpp jp.cpp -o jp $(CXXFLAGS)
-
-gm: graph.cpp gm.cpp
-	g++ graph.cpp gm.cpp -o gm $(CXXFLAGS)
-
-topology: graph.cpp topology.cpp
-	g++ graph.cpp topology.cpp -o topology $(CXXFLAGS)
-
-data-driven: graph.cpp data-driven.cpp
-	g++ graph.cpp data-driven.cpp -o data-driven $(CXXFLAGS)
+%: graph.cpp %.cpp
+	g++ $^ -o $@ $(CXXFLAGS)
 
 jp-cuda: graph.cpp jp-cuda.cu
 	nvcc graph.cpp jp-cuda.cu -o jp-cuda $(NVCCFLAGS)
