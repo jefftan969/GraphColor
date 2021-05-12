@@ -67,7 +67,7 @@ __global__ void kernelSetWeights(struct cudaContext context, curandState_t *stat
     int v = blockIdx.x * BLOCK_SIZE + threadIdx.x;
     
     int numVertices = context.numVertices;
-    if (0 <= v && v < numVertices) {
+    if (0 <= v && v < numVertices && context.worklist[v]) {
         context.weights[v] = curand(&states[v]) % numVertices;
     }
 }
@@ -94,7 +94,7 @@ __global__ void kernelColorJP(struct cudaContext context, int color) {
         // Check neighbors and determine the remaining worklist
         for(int i = vertices[v]; i < vertices[v+1]; i++) {
             int w = neighbors[i];
-            if(weights[v] <= weights[w] && worklist[w]) {
+            if(weights[v] <= weights[w]) {
                 // Indicate that worklist is not empty and elements still remain
                 *worklistEmptyFlag = 0;
                 return;
@@ -161,6 +161,7 @@ const int *jpColoring(struct cudaContext context) {
         // Set random vertex weights for each vertex
         curandState_t *states;
         cudaMalloc((void**)&states, sizeof(curandState_t) * numVertices);
+        cudaMemset(context.weights, 0x00, sizeof(int) * numVertices);
         kernelRandInit<<<gridDim, blockDim>>>(context, time(NULL), states);
         kernelSetWeights<<<gridDim, blockDim>>>(context, states);
         cudaDeviceSynchronize();
