@@ -33,8 +33,11 @@ public:
 };
 
 void printColoring(const std::vector<int> &coloring);
+void printColoring(const int *coloring, int size);
 bool checkColoring(const Graph &graph, const std::vector<int> &coloring);
+bool checkColoring(const Graph &graph, const int *coloring);
 int numColorsUsed(const std::vector<int> &coloring);
+int numColorsUsed(const int *coloring, int size);
 
 /**
  * @brief Helper function to check whether a filename has a given extension
