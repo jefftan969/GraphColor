@@ -128,7 +128,13 @@ struct cudaContext setup(const Graph &graph) {
     cudaMemset(context.coloring, 0x00, sizeof(int) * numVertices);
     cudaMemset(context.states, 0x00, sizeof(curandState_t) * numVertices);
     cudaMemset(context.worklistEmptyFlag, 0x00, sizeof(int));
-
+    
+    // Initialize random states
+    dim3 blockDim(BLOCK_SIZE);
+    dim3 gridDim((numVertices + BLOCK_SIZE - 1) / BLOCK_SIZE);
+    kernelRandInit<<<gridDim, blockDim>>>(context, time(NULL));
+    cudaDeviceSynchronize();
+    
     return context;
 }
 
@@ -159,11 +165,7 @@ const int *jpColoring(struct cudaContext context) {
     dim3 gridDim((numVertices + BLOCK_SIZE - 1) / BLOCK_SIZE);
     int worklistEmptyFlag = 0;
     int color = 0;
-
-    // Initialize random states
-    kernelRandInit<<<gridDim, blockDim>>>(context, time(NULL));
-    cudaDeviceSynchronize();
-
+    
     // Loop until worklist is empty
     while(!worklistEmptyFlag) {
         // Set random vertex weights for each vertex in worklist
