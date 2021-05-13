@@ -1,7 +1,7 @@
 NVCCFLAGS += -g -O3 -m64 --gpu-architecture compute_61 -ccbin /usr/bin/gcc -std=c++11
 
 # all: sequential jp gm topology data-driven
-all: gm jp jp-worklist
+all: gm
 
 %: ../graph.cpp %.cu
 	nvcc $^ -I ../ -o $@ $(NVCCFLAGS)
@@ -9,4 +9,3 @@ all: gm jp jp-worklist
 clean:
 	rm -f ./jp
 	rm -f ./gm
-	rm -f ./jp-worklist

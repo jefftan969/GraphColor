@@ -8,10 +8,14 @@
 
 #include "graph.h"
 
-// NOTE: This code currently infinite-loops if the number of colors is greater than COLOR_MASK_SIZE.
-// These values are chosen due to the limited number of registers available in CUDA
+// Note: This code performs graph coloring by using CUDA for NUM_CUDA_ITERS, before switching to a
+// sequential algorithm to color the remaining vertices. Since the remaining vertices have all
+// participated in multiple conflicts, it is likely that they are highly interconnected and more
+// difficult to color, so a sequential implementation would avoid the contention of a massively
+// parallel GPU implementation.
 #define COLOR_MASK_SIZE 500
 #define BLOCK_SIZE 128
+#define NUM_CUDA_ITERS 16
 
 #define DEBUG
 #ifdef DEBUG
@@ -144,18 +148,20 @@ void freeCudaContext(struct cudaContext context) {
 /**
  * @brief Performs graph coloring using the GM algorithm
  * @param[in] context A cudaContext sturct containing all device data structures
- * @return coloring The outputted coloring
+ * @return coloring The outputted coloring (which the user is responsible for freeing)
  */
-const int *gmColoring(struct cudaContext context) {
+const int *gmColoring(const Graph &graph, struct cudaContext context) {
     int numVertices = context.numVertices;
+    const int *vertices = graph.getCSRVertices();
+    const int *neighbors = graph.getCSRNeighbors();
 
     // Define kernel size and device flags
     dim3 blockDim(BLOCK_SIZE);
     dim3 gridDim((numVertices + BLOCK_SIZE - 1) / BLOCK_SIZE);
     int worklistEmptyFlag = 0;
 
-    // Loop until worklist is empty
-    while(!worklistEmptyFlag) {
+    // Loop until worklist is empty, or until NUM_CUDA_ITERS have been performed
+    for(int iter = 0; iter < NUM_CUDA_ITERS && !worklistEmptyFlag; iter++) {
         // Determine which colors are permissible for each vertex
         kernelSpeculate<<<gridDim, blockDim>>>(context);
         cudaDeviceSynchronize();
@@ -166,10 +172,57 @@ const int *gmColoring(struct cudaContext context) {
         cudaMemcpy(&worklistEmptyFlag, context.worklistEmptyFlag, sizeof(int), cudaMemcpyDeviceToHost);
         cudaDeviceSynchronize();
     }
-    
-    // Retrieve coloring from device
+
+    // Retrieve worklist and coloring from device
+    int *worklist = new int[numVertices];
     int *coloring = new int[numVertices];
+    int *colorMask = new int[numVertices];
+    cudaMemcpy(worklist, context.worklist, sizeof(int) * numVertices, cudaMemcpyDeviceToHost);
     cudaMemcpy(coloring, context.coloring, sizeof(int) * numVertices, cudaMemcpyDeviceToHost);
+
+    // Represent worklist as a vector in compressed form
+    std::vector<int> W;
+    for(int v = 0; v < numVertices; v++) {
+        if(worklist[v]) {
+            W.push_back(v);
+        }
+    }
+
+    // Use sequential GM algorithm to color remaining hard-to-color vertices
+    while(!W.empty()) {
+        // Determine which colors are permissible for each vertex
+        for(int i = 0; i < (int)W.size(); i++) {
+            int v = W[i];
+            for(int j = vertices[v]; j < vertices[v+1]; j++) {
+                int w = neighbors[j];
+                colorMask[coloring[w]] = v;
+            }
+            for(int j = 0; j < numVertices; j++) {
+                if(colorMask[j] != v) {
+                    coloring[v] = j;
+                    break;
+                }
+            }
+        }
+
+        // Initialize the remaining worklist
+        std::vector<int> R;
+        for(int i = 0; i < (int)W.size(); i++) {
+            int v = W[i];
+            for(int j = vertices[v]; j < vertices[v+1]; j++) {
+                int w = neighbors[j];
+                if((v < w) && (coloring[v] == coloring[w])) {
+                    R.push_back(v);
+                }
+            }
+        }
+
+        // Update current worklist
+        std::swap(W, R);
+    }
+
+    delete worklist;
+    delete colorMask;
     return coloring;
 }
 
@@ -183,7 +236,7 @@ int main(int argc, char *argv[]) {
     struct cudaContext context = setup(graph);
 
     auto t1 = getTime();
-    const int *coloring = gmColoring(context);
+    const int *coloring = gmColoring(graph, context);
     auto t2 = getTime();
     std::cout << "Time: " << getMillis(t1, t2) << "ms\n";
 
