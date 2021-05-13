@@ -94,7 +94,7 @@ __global__ void kernelColorJP(struct cudaContext context, int color) {
         // Check neighbors and determine the remaining worklist
         for(int i = vertices[v]; i < vertices[v+1]; i++) {
             int w = neighbors[i];
-            if(weights[v] <= weights[w]) {
+            if(weights[v] <= weights[w] && v != w) {
                 // Indicate that worklist is not empty and elements still remain
                 *worklistEmptyFlag = 0;
                 return;
@@ -156,16 +156,18 @@ const int *jpColoring(struct cudaContext context) {
     int worklistChangedFlag = 0;
     int color = 0;
 
+    // Initialize random states
+    curandState_t *states;
+    cudaMalloc((void**)&states, sizeof(curandState_t) * numVertices);
+    kernelRandInit<<<gridDim, blockDim>>>(context, time(NULL), states);
+    cudaDeviceSynchronize();
+
     // Loop until worklist is empty
     while(!worklistEmptyFlag) {
         // Set random vertex weights for each vertex
-        curandState_t *states;
-        cudaMalloc((void**)&states, sizeof(curandState_t) * numVertices);
         cudaMemset(context.weights, 0x00, sizeof(int) * numVertices);
-        kernelRandInit<<<gridDim, blockDim>>>(context, time(NULL), states);
         kernelSetWeights<<<gridDim, blockDim>>>(context, states);
         cudaDeviceSynchronize();
-        cudaFree(states);
  
         // Resolve conflicts and determine the remaining worklist
         cudaMemset(context.worklistEmptyFlag, 0x01, sizeof(int));
@@ -177,7 +179,9 @@ const int *jpColoring(struct cudaContext context) {
 
         if (worklistChangedFlag) color++;
     }
-    
+    // Cleanup
+    cudaFree(states);
+
     // Retrieve coloring from device
     int *coloring = new int[numVertices];
     cudaMemcpy(coloring, context.coloring, sizeof(int) * numVertices, cudaMemcpyDeviceToHost);
